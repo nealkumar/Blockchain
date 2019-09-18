@@ -22,7 +22,7 @@ def fetch_posts():
     response = requests.get(get_chain_address)
     if response.status_code == 200:
         content = []
-        chain = json.loads(response.content)
+        chain = json.loads((response.content).decode("UTF-8"), parse_constant=str)
         for block in chain["chain"]:
             for tx in block["transactions"]:
                 tx["index"] = block["index"]
