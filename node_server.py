@@ -7,12 +7,13 @@ import requests
 
 
 class Block:
-    def __init__(self, index, transactions, timestamp, previous_hash, nonce=0):
+    def __init__(self, index, transactions, timestamp, previous_hash, nonce=0, reward=0):
         self.index = index
         self.transactions = transactions
         self.timestamp = timestamp
         self.previous_hash = previous_hash
         self.nonce = nonce
+        self.reward = reward
 
     def compute_hash(self):
         """
@@ -120,11 +121,15 @@ class Blockchain:
             return False
 
         last_block = self.last_block
-
+        totalContent = 0
+        for x in self.unconfirmed_transactions:
+            totalContent += len(x["content"])
+        tx = self.unconfirmed_transactions
         new_block = Block(index=last_block.index + 1,
                           transactions=self.unconfirmed_transactions,
                           timestamp=time.time(),
-                          previous_hash=last_block.hash)
+                          previous_hash=last_block.hash,
+                          reward = len(tx)*totalContent)
 
         proof = self.proof_of_work(new_block)
         self.add_block(new_block, proof)
@@ -133,6 +138,14 @@ class Blockchain:
         # announce it to the network
         announce_new_block(new_block)
         return new_block.index
+
+#@app.route('/unconfirmed_transactions', methods=['GET'])
+#def getUnconfirmedTransactions():
+#    count = 0;
+#    for x in blockchain.unconfirmed_transactions:
+#        count += 1
+#    return json.dumps({"unconfirmed_transactions" : count})
+
 
 
 app = Flask(__name__)
@@ -143,6 +156,24 @@ blockchain.create_genesis_block()
 
 # the address to other participating members of the network
 peers = set()
+
+@app.route('/unconfirmed_transactions', methods=['GET'])
+def getUnconfirmedTransactions():
+    count = 0;
+    for x in blockchain.unconfirmed_transactions:
+        count += 1
+    return json.dumps({"unconfirmed_transactions" : count})
+
+@app.route('/block', methods=['GET'])
+def get_total_blocks():
+    totalBlock = 0
+    chain_data = []
+    for block in blockchain.chain:
+        chain_data.append(block.__dict__)
+        totalBlock += 1
+    return json.dumps({"totalBlocks" : totalBlock})
+
+
 
 
 # endpoint to submit a new transaction. This will be used by
