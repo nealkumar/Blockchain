@@ -188,6 +188,7 @@ def new_transaction():
             return "Invlaid transaction data", 404
 
     tx_data["timestamp"] = time.time()
+    tx_data["tx_hash"] = str(hash(tx_data["content"]))
 
     blockchain.add_new_transaction(tx_data)
 
