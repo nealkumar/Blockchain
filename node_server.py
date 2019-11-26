@@ -5,15 +5,17 @@ import time
 from flask import Flask, request
 import requests
 
+myMerkle = []
 
 class Block:
-    def __init__(self, index, transactions, timestamp, previous_hash, nonce=0, reward=0):
+    def __init__(self, index, transactions, timestamp, previous_hash, nonce=0, reward=0, merkle=0):
         self.index = index
         self.transactions = transactions
         self.timestamp = timestamp
         self.previous_hash = previous_hash
         self.nonce = nonce
         self.reward = reward
+        self.merkle = merkle
 
     def compute_hash(self):
         """
@@ -111,6 +113,8 @@ class Blockchain:
 
         return result
 
+    myMerkle = []
+
     def mine(self):
         """
         This function serves as an interface to add the pending
@@ -122,17 +126,22 @@ class Blockchain:
 
         last_block = self.last_block
         totalContent = 0
+        merkleCount = []
         for x in self.unconfirmed_transactions:
             totalContent += len(x["content"])
+            merkleCount.append(x["content_len"])
+            myMerkle.append(x["content_len"])
         tx = self.unconfirmed_transactions
         new_block = Block(index=last_block.index + 1,
                           transactions=self.unconfirmed_transactions,
                           timestamp=time.time(),
                           previous_hash=last_block.hash,
-                          reward = len(tx)*totalContent)
+                          reward = len(tx)*totalContent,
+                          merkle = merkleCount)
 
         proof = self.proof_of_work(new_block)
         self.add_block(new_block, proof)
+        #myMerkle = merkleCount
 
         self.unconfirmed_transactions = []
         # announce it to the network
@@ -174,6 +183,9 @@ def get_total_blocks():
     return json.dumps({"totalBlocks" : totalBlock})
 
 
+@app.route('/merkle-tree', methods=['GET'])
+def getMerkle():
+    return json.dumps({"merkle_tree" : myMerkle})
 
 
 # endpoint to submit a new transaction. This will be used by
@@ -189,6 +201,7 @@ def new_transaction():
 
     tx_data["timestamp"] = time.time()
     tx_data["tx_hash"] = str(hash(tx_data["content"]))
+    tx_data["content_len"] = len(tx_data["content"])
 
     blockchain.add_new_transaction(tx_data)
 
